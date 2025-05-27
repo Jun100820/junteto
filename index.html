@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Canvas テトリス (ストック機能)</title>
+    <title>Canvas テトリス (UI修正)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
@@ -15,23 +15,35 @@
             --accent-color: #4299e1;
             --button-bg: #4a5568;
             --button-active-bg: #718096;
-            --button-disabled-bg: #2d3748; /* ストック不可時のボタン背景 */
-            --button-disabled-text: #718096; /* ストック不可時のボタン文字色 */
+            --button-disabled-bg: #2d3748;
+            --button-disabled-text: #718096;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             align-items: center;
-            height: 100vh;
-            margin: 0;
             background-color: var(--bg-color);
             color: var(--text-primary);
-            overflow: hidden;
             padding: 0.5rem;
             box-sizing: border-box;
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            max-width: 420px;
         }
 
         .game-area {
@@ -40,7 +52,7 @@
             align-items: center;
             gap: 0.5rem;
             width: 100%;
-            max-width: 400px;
+            padding-top: 0.5rem;
         }
 
         .main-content {
@@ -64,32 +76,31 @@
             border: 2px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            gap: 0.5rem; /* 各情報要素間のギャップ */
-            font-size: 0.875rem;
-            min-width: 100px;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            min-width: 90px;
         }
 
-        .info-section { /* スコア、次のミノ、ストックミノの各セクション */
+        .info-section {
             display: flex;
             flex-direction: column;
-            align-items: center; /* 中央揃え */
+            align-items: center;
         }
 
-
         .info-panel h2 {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: bold;
-            margin-bottom: 0.1rem; /* h2とCanvasの間のマージンを詰める */
+            margin-bottom: 0.1rem;
             color: var(--text-secondary);
             text-align: center;
         }
 
-        .info-panel p#score { /* スコア専用スタイル */
-            font-size: 1.1rem;
+        .info-panel p#score {
+            font-size: 1rem;
             color: var(--text-primary);
             font-weight: bold;
             text-align: center;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
         }
 
         #nextCanvas, #stockCanvas {
@@ -97,7 +108,7 @@
             background-color: var(--bg-color);
             border-radius: 4px;
             display: block;
-            margin: 0 auto 0.25rem; /* Canvasと次の要素(ボタンなど)の間のマージン */
+            margin: 0 auto 0.2rem;
         }
 
         #btnStock {
@@ -105,54 +116,66 @@
             color: white;
             border: none;
             border-radius: 5px;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
             cursor: pointer;
             transition: background-color 0.2s;
-            width: 80%; /* ボタン幅を調整 */
-            margin: 0 auto; /* 中央揃え */
-            display: block; /* margin autoを効かせるため */
+            width: 75%;
+            margin: 0 auto;
+            display: block;
         }
-
-        #btnStock:active {
-            background-color: var(--button-active-bg);
-        }
+        #btnStock:active { background-color: var(--button-active-bg); }
         #btnStock:disabled {
             background-color: var(--button-disabled-bg);
             color: var(--button-disabled-text);
             cursor: not-allowed;
         }
 
-
-        .controls-container { /* ... (前回と同様) ... */
+        .controls-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 420px;
-            padding: 0.5rem 0;
-            margin-top: auto;
+            padding: 0.5rem 0 0.2rem;
         }
-        .d-pad-controls, .action-buttons { /* ... (前回と同様) ... */
+        /* ゲームオーバー時に操作ボタンを非表示にするためのクラス */
+        .controls-hidden {
+            display: none !important;
+        }
+
+
+        .d-pad-controls, .action-buttons {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
-        .d-pad-controls button { /* ... (前回と同様) ... */
+
+        .d-pad-controls button {
             background-color: var(--button-bg); color: white; border: none; border-radius: 8px;
-            width: 60px; height: 60px; font-size: 1.5rem; display: flex; justify-content: center;
-            align-items: center; transition: background-color 0.2s; touch-action: manipulation;
+            width: 55px;
+            height: 55px;
+            font-size: 1.4rem;
+            display: flex; justify-content: center; align-items: center;
+            transition: background-color 0.2s; touch-action: manipulation;
         }
         .d-pad-controls button:active { background-color: var(--button-active-bg); }
-        .action-buttons { /* ... (前回と同様) ... */
-            display: grid; grid-template-areas: ". rotate-cw ." "rotate-ccw . hard-drop" ". soft-drop .";
-            grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px);
-            gap: 5px; justify-content: center; align-content: center; transform: scale(0.9);
+
+        .action-buttons {
+            display: grid;
+            grid-template-areas: ". rotate-cw ." "rotate-ccw . hard-drop" ". soft-drop .";
+            /* ボタンサイズを少し大きく */
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 50px);
+            gap: 5px; /* ギャップも少し調整 */
+            justify-content: center; align-content: center;
+            transform: scale(0.9); /* スケールを少し戻すか、ボタンサイズに合わせて調整 */
         }
-        .action-buttons button { /* ... (前回と同様) ... */
+        .action-buttons button {
             background-color: var(--button-bg); color: white; border: none; border-radius: 50%;
-            width: 100%; height: 100%; font-size: 1.2rem; display: flex; justify-content: center;
-            align-items: center; transition: background-color 0.2s; touch-action: manipulation;
+            width: 100%; height: 100%;
+            font-size: 1.25rem; /* アイコンサイズを少し大きく */
+            display: flex; justify-content: center; align-items: center;
+            transition: background-color 0.2s; touch-action: manipulation;
         }
         .action-buttons button:active { background-color: var(--button-active-bg); }
         #btnRotateCW { grid-area: rotate-cw; }
@@ -160,11 +183,14 @@
         #btnSoftDrop { grid-area: soft-drop; }
         #btnHardDropAction { grid-area: hard-drop; }
 
-        .game-over-message { /* ... (前回と同様) ... */
+        .game-over-message {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.85); padding: 1.5rem; border-radius: 10px;
-            text-align: center; z-index: 100; color: white; border: 2px solid #E53E3E;
+            background-color: rgba(0, 0, 0, 0.9); /* 背景を少し濃くして下の要素を隠す */
+            padding: 1.5rem; border-radius: 10px;
+            text-align: center; z-index: 1000; /* z-indexを高く保つ */
+            color: white; border: 2px solid #E53E3E;
             width: 90%; max-width: 350px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); /* 影をつけて浮き上がらせる */
         }
         .game-over-message h2 { font-size: 1.8rem; color: #FC8181; margin-bottom: 1rem; }
         .game-over-message p { font-size: 1rem; margin-bottom: 1.25rem; }
@@ -176,66 +202,80 @@
         .game-over-message button:hover { background-color: #38A169; }
         .hidden { display: none !important; }
 
-        .controls-info { display: none; } /* スマホではキーボード説明非表示 */
-        @media (min-width: 768px) { /* PCでは表示 */
-            .controls-info { /* ... (前回と同様) ... */
+        .controls-info { display: none; }
+        @media (min-width: 768px) {
+            .game-wrapper { max-width: none; }
+            .game-area { flex-direction: row; align-items: flex-start; padding-top: 1rem;}
+            .main-content { flex-direction: row; }
+            .info-panel { flex-grow: 0; width: 200px; font-size: 0.875rem;}
+            .info-panel h2 { font-size: 1rem; }
+            .info-panel p#score { font-size: 1.1rem; }
+            #btnStock { padding: 0.3rem 0.6rem; font-size: 0.8rem; width: 80%;}
+            .controls-container { justify-content: center; gap: 2rem; padding: 1rem 0; }
+            .d-pad-controls button { width: 60px; height: 60px; font-size: 1.5rem; }
+            .action-buttons {
+                grid-template-columns: repeat(3, 55px); /* PCではさらに少し大きく */
+                grid-template-rows: repeat(3, 55px);
+                gap: 6px;
+                transform: scale(1); /* PCではスケール戻す */
+            }
+            .action-buttons button { font-size: 1.35rem; }
+            .controls-info {
                 display: block; margin-top: 1rem; padding: 0.75rem; background-color: var(--surface-color);
                 border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.875rem;
             }
             .controls-info h3 { font-size: 1rem; font-weight: bold; margin-bottom: 0.5rem; color: var(--text-secondary); }
             .controls-info ul { list-style-type: none; padding-left: 0; }
             .controls-info li { margin-bottom: 0.25rem; color: var(--text-primary); }
-            .game-area { flex-direction: row; align-items: flex-start; max-width: none;}
-            .main-content { flex-direction: row; }
-            .info-panel { flex-grow: 0; width: 200px; }
-            .controls-container { justify-content: center; gap: 2rem; }
         }
     </style>
 </head>
 <body>
-    <div class="game-area">
-        <div class="main-content">
-            <canvas id="gameCanvas"></canvas>
-            <div class="info-panel">
-                <div class="info-section">
-                    <h2>スコア</h2>
-                    <p id="score">0</p>
-                </div>
-                <div class="info-section">
-                    <h2>次のミノ</h2>
-                    <canvas id="nextCanvas"></canvas>
-                </div>
-                <div class="info-section">
-                    <h2>ストック</h2>
-                    <canvas id="stockCanvas"></canvas>
-                    <button id="btnStock">ストック</button>
-                </div>
-                <div class="controls-info"> <h3>操作方法 (キーボード)</h3>
-                    <ul>
-                        <li>↑ / X : 即落下</li>
-                        <li>← / Z : 左回転</li>
-                        <li>→ / C : 右回転</li>
-                        <li>↓ : 高速落下</li>
-                        <li>A / ←(key) : 左移動</li>
-                        <li>D / →(key) : 右移動</li>
-                        <li>Space / S : ストック</li>
-                        <li>R : (ゲームオーバー時) リスタート</li>
-                    </ul>
+    <div class="game-wrapper">
+        <div class="game-area">
+            <div class="main-content">
+                <canvas id="gameCanvas"></canvas>
+                <div class="info-panel">
+                    <div class="info-section">
+                        <h2>スコア</h2>
+                        <p id="score">0</p>
+                    </div>
+                    <div class="info-section">
+                        <h2>次のミノ</h2>
+                        <canvas id="nextCanvas"></canvas>
+                    </div>
+                    <div class="info-section">
+                        <h2>ストック</h2>
+                        <canvas id="stockCanvas"></canvas>
+                        <button id="btnStock">ストック</button>
+                    </div>
+                    <div class="controls-info">
+                        <h3>操作方法 (キーボード)</h3>
+                        <ul>
+                            <li>↑ / X : 即落下</li>
+                            <li>← / Z : 左回転</li>
+                            <li>→ / C : 右回転</li>
+                            <li>↓ : 高速落下</li>
+                            <li>A / ←(key) : 左移動</li>
+                            <li>D / →(key) : 右移動</li>
+                            <li>Space / S : ストック</li>
+                            <li>R : (ゲームオーバー時) リスタート</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="controls-container">
-        <div class="d-pad-controls">
-            <button id="btnMoveLeftPad">◀</button>
-            <button id="btnMoveRightPad">▶</button>
-        </div>
-        <div class="action-buttons">
-            <button id="btnRotateCW">↻</button>
-            <button id="btnRotateCCW">↺</button>
-            <button id="btnSoftDrop">↓</button>
-            <button id="btnHardDropAction">⏬</button>
+        <div class="controls-container" id="controlsContainer"> <div class="d-pad-controls">
+                <button id="btnMoveLeftPad">◀</button>
+                <button id="btnMoveRightPad">▶</button>
+            </div>
+            <div class="action-buttons">
+                <button id="btnRotateCW">↻</button>
+                <button id="btnRotateCCW">↺</button>
+                <button id="btnSoftDrop">↓</button>
+                <button id="btnHardDropAction">⏬</button>
+            </div>
         </div>
     </div>
 
@@ -246,19 +286,18 @@
     </div>
 
     <script>
-        // --- 定数 ---
+        // --- 定数 (前回と同様) ---
         const COLS = 10; const ROWS = 20; let BLOCK_SIZE = 20;
         const NEXT_COLS = 4; const NEXT_ROWS = 4; let NEXT_BLOCK_SIZE = 12;
-        const STOCK_COLS = 4; const STOCK_ROWS = 4; let STOCK_BLOCK_SIZE = 10; // ストック用サイズ
-
-        const COLORS = { /* ... (前回と同様) ... */
+        const STOCK_COLS = 4; const STOCK_ROWS = 4; let STOCK_BLOCK_SIZE = 10;
+        const COLORS = {
             0: getComputedStyle(document.documentElement).getPropertyValue('--surface-color').trim(),
             'I': '#38B2AC', 'O': '#F6E05E', 'T': '#A0AEC0',
             'S': '#68D391', 'Z': '#FC8181', 'J': '#63B3ED', 'L': '#F6AD55',
             'GHOST': 'rgba(237, 242, 247, 0.15)'
         };
         const BORDER_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
-        const TETROMINOES = { /* ... (前回と同様) ... */
+        const TETROMINOES = {
             'I': { shape: [[[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], [[0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0]], [[0,0,0,0], [0,0,0,0], [1,1,1,1], [0,0,0,0]], [[0,0,1,0], [0,0,1,0], [0,0,1,0], [0,0,1,0]]], color: 'I', spawnOffset: {x: 0, y: -1}},
             'O': { shape: [[[1,1], [1,1]]], color: 'O', spawnOffset: {x: 0, y: 0}},
             'T': { shape: [[[0,1,0], [1,1,1], [0,0,0]], [[0,1,0], [0,1,1], [0,1,0]], [[0,0,0], [1,1,1], [0,1,0]], [[0,1,0], [1,1,0], [0,1,0]]], color: 'T', spawnOffset: {x: 0, y: 0}},
@@ -268,18 +307,17 @@
             'L': { shape: [[[0,0,1], [1,1,1], [0,0,0]], [[0,1,0], [0,1,0], [0,1,1]], [[0,0,0], [1,1,1], [1,0,0]], [[1,1,0], [0,1,0], [0,1,0]]], color: 'L', spawnOffset: {x: 0, y: 0}}
         };
 
-
         // --- グローバル変数 ---
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         const nextCanvas = document.getElementById('nextCanvas'); const nextCtx = nextCanvas.getContext('2d');
-        const stockCanvas = document.getElementById('stockCanvas'); const stockCtx = stockCanvas.getContext('2d'); // ストック用Canvas
+        const stockCanvas = document.getElementById('stockCanvas'); const stockCtx = stockCanvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const gameOverScreen = document.getElementById('gameOverScreen');
         const finalScoreElement = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
-        const btnStockElement = document.getElementById('btnStock'); // ストックボタン要素
+        const btnStockElement = document.getElementById('btnStock');
+        const controlsContainerElement = document.getElementById('controlsContainer'); // 操作ボタンのコンテナ
 
-        // Touch Control Buttons (前回と同様)
         const btnMoveLeftPad = document.getElementById('btnMoveLeftPad');
         const btnMoveRightPad = document.getElementById('btnMoveRightPad');
         const btnRotateCW = document.getElementById('btnRotateCW');
@@ -287,380 +325,225 @@
         const btnSoftDrop = document.getElementById('btnSoftDrop');
         const btnHardDropAction = document.getElementById('btnHardDropAction');
 
+        let board; let currentTetromino; let nextTetromino; let stockTetromino = null;
+        let canStockThisTurn = true; let score; let gameOver; let fallTime;
+        let fallSpeedNormal = 700; let fallSpeedSoftDrop = 70; let currentFallSpeed;
+        let animationFrameId; let isSoftDropping = false;
 
-        let board;
-        let currentTetromino;
-        let nextTetromino;
-        let stockTetromino = null; // ストックされたミノ
-        let canStockThisTurn = true; // このターンでストック可能かどうかのフラグ
-        let score;
-        let gameOver;
-        let fallTime;
-        let fallSpeedNormal = 700;
-        let fallSpeedSoftDrop = 70;
-        let currentFallSpeed;
-        let animationFrameId;
-        let isSoftDropping = false;
-
-        // --- 初期化 & リサイズ処理 ---
-        function setupCanvasSizes() {
-            const gameArea = document.querySelector('.game-area');
+        // --- 初期化 & リサイズ処理 (setupCanvasSizes は前回と同様) ---
+        function setupCanvasSizes() { /* ... (前回と同様のロジック) ... */
+            const gameWrapper = document.querySelector('.game-wrapper');
             const controlsContainer = document.querySelector('.controls-container');
-            const availableHeight = window.innerHeight - controlsContainer.offsetHeight - (parseInt(getComputedStyle(document.body).paddingTop) * 2) - (parseInt(getComputedStyle(gameArea).gap) || 0) - 20;
-            const availableWidth = gameArea.offsetWidth;
-
-            const canvasWidthBasedOnHeight = (availableHeight / ROWS) * COLS;
-
-            if (canvasWidthBasedOnHeight <= availableWidth * 0.60) { // Canvasがメインコンテンツの60%以下
-                 BLOCK_SIZE = Math.floor(availableHeight / ROWS);
-            } else {
-                 BLOCK_SIZE = Math.floor((availableWidth * 0.60) / COLS);
-            }
-            BLOCK_SIZE = Math.max(10, BLOCK_SIZE);
-
-            const mainContentWidth = COLS * BLOCK_SIZE;
-            document.querySelector('.main-content').style.width = `${mainContentWidth + (availableWidth * 0.40) + 10}px`;
-            canvas.width = mainContentWidth;
-            canvas.height = ROWS * BLOCK_SIZE;
-            ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
-
+            const bodyPaddingTop = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+            const bodyPaddingBottom = parseFloat(getComputedStyle(document.body).paddingBottom) || 0;
+            const availableHeightForGameArea = gameWrapper.clientHeight - controlsContainer.offsetHeight - bodyPaddingTop - bodyPaddingBottom - (parseFloat(getComputedStyle(gameWrapper.querySelector('.game-area')).gap) || 0) - (parseFloat(getComputedStyle(gameWrapper.querySelector('.game-area')).paddingTop) || 0) - 10;
+            const availableWidthForMainContent = gameWrapper.clientWidth;
+            const targetCanvasWidth = availableWidthForMainContent * 0.60;
+            let blockWidthBased = Math.floor(targetCanvasWidth / COLS);
+            let blockHeightBased = Math.floor(availableHeightForGameArea / ROWS);
+            BLOCK_SIZE = Math.min(blockWidthBased, blockHeightBased);
+            BLOCK_SIZE = Math.max(8, BLOCK_SIZE);
+            const calculatedCanvasWidth = COLS * BLOCK_SIZE;
+            const calculatedCanvasHeight = ROWS * BLOCK_SIZE;
+            canvas.width = calculatedCanvasWidth; canvas.height = calculatedCanvasHeight;
+            if (BLOCK_SIZE > 0) ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
             const infoPanel = document.querySelector('.info-panel');
-            NEXT_BLOCK_SIZE = Math.floor( (infoPanel.clientWidth * 0.5) / NEXT_COLS ); // 少し小さく
-            NEXT_BLOCK_SIZE = Math.max(8, NEXT_BLOCK_SIZE);
-            STOCK_BLOCK_SIZE = NEXT_BLOCK_SIZE; // ストックも同じサイズに
-
-            nextCanvas.width = NEXT_COLS * NEXT_BLOCK_SIZE;
-            nextCanvas.height = NEXT_ROWS * NEXT_BLOCK_SIZE;
-            if (nextCanvas.width > 0 && nextCanvas.height > 0) {
-                 nextCtx.scale(NEXT_BLOCK_SIZE, NEXT_BLOCK_SIZE);
+            const infoPanelWidth = infoPanel.clientWidth;
+            NEXT_BLOCK_SIZE = Math.floor((infoPanelWidth * 0.7) / NEXT_COLS);
+            NEXT_BLOCK_SIZE = Math.max(6, NEXT_BLOCK_SIZE); STOCK_BLOCK_SIZE = NEXT_BLOCK_SIZE;
+            nextCanvas.width = NEXT_COLS * NEXT_BLOCK_SIZE; nextCanvas.height = NEXT_ROWS * NEXT_BLOCK_SIZE;
+            if (NEXT_BLOCK_SIZE > 0 && nextCanvas.width > 0 && nextCanvas.height > 0) {
+                nextCtx.setTransform(1,0,0,1,0,0); nextCtx.scale(NEXT_BLOCK_SIZE, NEXT_BLOCK_SIZE);
             }
-
-            stockCanvas.width = STOCK_COLS * STOCK_BLOCK_SIZE;
-            stockCanvas.height = STOCK_ROWS * STOCK_BLOCK_SIZE;
-            if (stockCanvas.width > 0 && stockCanvas.height > 0) {
-                 stockCtx.scale(STOCK_BLOCK_SIZE, STOCK_BLOCK_SIZE);
+            stockCanvas.width = STOCK_COLS * STOCK_BLOCK_SIZE; stockCanvas.height = STOCK_ROWS * STOCK_BLOCK_SIZE;
+            if (STOCK_BLOCK_SIZE > 0 && stockCanvas.width > 0 && stockCanvas.height > 0) {
+                stockCtx.setTransform(1,0,0,1,0,0); stockCtx.scale(STOCK_BLOCK_SIZE, STOCK_BLOCK_SIZE);
             }
         }
 
-        function init() {
+        function init() { /* ... (前回と同様) ... */
             setupCanvasSizes();
             window.addEventListener('resize', () => {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                nextCtx.setTransform(1, 0, 0, 1, 0, 0);
-                stockCtx.setTransform(1, 0, 0, 1, 0, 0); // ストックCanvasもリセット
+                ctx.setTransform(1, 0, 0, 1, 0, 0); nextCtx.setTransform(1, 0, 0, 1, 0, 0); stockCtx.setTransform(1, 0, 0, 1, 0, 0);
                 setupCanvasSizes();
-                if (!gameOver) {
-                    draw();
-                    drawNextTetromino();
-                    drawStockTetromino(); // ストックも再描画
-                }
+                if (!gameOver) { draw(); drawNextTetromino(); drawStockTetromino(); }
+                else { drawBoard(); drawNextTetromino(); drawStockTetromino(); }
             });
             resetGame();
         }
 
         function resetGame() {
-            board = createBoard();
-            score = 0;
-            updateScore();
-            gameOver = false;
-            currentFallSpeed = fallSpeedNormal;
-            isSoftDropping = false;
-            fallTime = 0;
-            stockTetromino = null; // ストックをリセット
-            canStockThisTurn = true; // ストック可能状態に
-            btnStockElement.disabled = false; // ストックボタンを有効化
-            spawnNewTetromino(); // 1つ目
-            spawnNewTetromino(); // 2つ目 (nextTetrominoに入る)
-
-            drawStockTetromino(); // 初期ストック表示（空のはず）
-            gameOverScreen.classList.add('hidden');
+            board = createBoard(); score = 0; updateScore(); gameOver = false;
+            currentFallSpeed = fallSpeedNormal; isSoftDropping = false; fallTime = 0;
+            stockTetromino = null; canStockThisTurn = true; btnStockElement.disabled = false;
+            controlsContainerElement.classList.remove('controls-hidden'); // 操作ボタンを表示
+            spawnNewTetromino(); spawnNewTetromino();
+            drawStockTetromino(); gameOverScreen.classList.add('hidden');
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             gameLoop();
         }
 
+        // createBoard, spawnNewTetromino, handleStock, moveTetromino,
+        // rotateTetrominoLogic, hardDropAction, checkCollision, lockTetromino,
+        // clearLines, updateScore は前回とほぼ同様
         function createBoard() { return Array.from({ length: ROWS }, () => Array(COLS).fill(0)); }
-
-        function spawnNewTetromino(fromStock = false) {
+        function spawnNewTetromino(fromStock = false) { /* ... (前回と同様) ... */
             if (gameOver) return;
-
-            if (fromStock && stockTetromino) { // ストックから出す場合
-                currentTetromino = stockTetromino;
-                stockTetromino = null; // ストックを空にする
-            } else { // 通常の新しいミノ
-                currentTetromino = nextTetromino;
-                const types = 'IOTSLJZ';
-                const type = types[Math.floor(Math.random() * types.length)];
+            if (fromStock && stockTetromino) { currentTetromino = stockTetromino; stockTetromino = null; }
+            else {
+                currentTetromino = nextTetromino; const types = 'IOTSLJZ'; const type = types[Math.floor(Math.random() * types.length)];
                 const tetrominoData = TETROMINOES[type];
-                nextTetromino = {
-                    shape: tetrominoData.shape[0], // 初期形状
-                    allShapes: tetrominoData.shape,
-                    color: tetrominoData.color,
-                    // x, y は currentTetromino にセットする際に決定
-                    rotation: 0
-                };
+                nextTetromino = { shape: tetrominoData.shape[0], allShapes: tetrominoData.shape, color: tetrominoData.color, rotation: 0 };
             }
-
             if (currentTetromino) {
                  currentTetromino.x = Math.floor(COLS / 2) - Math.floor(currentTetromino.shape[0].length / 2);
                  currentTetromino.y = TETROMINOES[currentTetromino.color].spawnOffset.y;
-                 if (checkCollision(currentTetromino.shape, currentTetromino.x, currentTetromino.y)) {
-                    gameOver = true;
-                }
-            } else if (!fromStock) { // 通常スポーンでcurrentTetrominoがnullになるのはおかしい (nextが空だった場合など)
-                 console.error("Failed to spawn new tetromino. Next tetromino might be undefined.");
-                 gameOver = true; // 安全のためゲームオーバー
-            }
-
-            drawNextTetromino();
-            drawStockTetromino(); // ストック状態が変わった可能性があるので再描画
+                 if (checkCollision(currentTetromino.shape, currentTetromino.x, currentTetromino.y)) { gameOver = true; }
+            } else if (!fromStock) { gameOver = true; }
+            drawNextTetromino(); drawStockTetromino();
         }
-
-        // --- ストック機能 ---
-        function handleStock() {
+        function handleStock() { /* ... (前回と同様) ... */
             if (gameOver || !canStockThisTurn || !currentTetromino) return;
-
-            if (stockTetromino === null) { // ストックが空の場合
-                stockTetromino = { ...currentTetromino, shape: TETROMINOES[currentTetromino.color].shape[0], rotation: 0 }; // 初期回転でストック
-                spawnNewTetromino(); // 次のミノを落下させる
-            } else { // ストックにミノがある場合
+            if (stockTetromino === null) {
+                stockTetromino = { ...currentTetromino, shape: TETROMINOES[currentTetromino.color].shape[0], rotation: 0 }; spawnNewTetromino();
+            } else {
                 const temp = currentTetromino;
-                currentTetromino = { ...stockTetromino, shape: TETROMINOES[stockTetromino.color].shape[0], rotation: 0 }; // ストックから出す時は初期回転
-                stockTetromino = { ...temp, shape: TETROMINOES[temp.color].shape[0], rotation: 0 }; // 現在のミノを初期回転でストック
-
-                // ストックから出したミノの初期位置を設定
+                currentTetromino = { ...stockTetromino, shape: TETROMINOES[stockTetromino.color].shape[0], rotation: 0 };
+                stockTetromino = { ...temp, shape: TETROMINOES[temp.color].shape[0], rotation: 0 };
                 currentTetromino.x = Math.floor(COLS / 2) - Math.floor(currentTetromino.shape[0].length / 2);
                 currentTetromino.y = TETROMINOES[currentTetromino.color].spawnOffset.y;
-
-                if (checkCollision(currentTetromino.shape, currentTetromino.x, currentTetromino.y)) {
-                    gameOver = true; // 入れ替えた結果、即衝突ならゲームオーバー
-                }
+                if (checkCollision(currentTetromino.shape, currentTetromino.x, currentTetromino.y)) { gameOver = true; }
             }
-            canStockThisTurn = false; // このターンはもうストックできない
-            btnStockElement.disabled = true; // ボタンを無効化
-            fallTime = 0; // 落下タイマーリセットして即座の落下を防ぐ（好みで調整）
-            drawStockTetromino();
-            drawNextTetromino(); // currentが変わったのでnextも再描画されるべき spawnNewTetromino内で処理
+            canStockThisTurn = false; btnStockElement.disabled = true; fallTime = 0;
+            drawStockTetromino(); drawNextTetromino();
         }
-
-
-        // --- ゲームロジック (変更なしの部分は省略) ---
         function moveTetromino(dx, dy) { /* ... (前回と同様) ... */
             if (!currentTetromino || gameOver) return false;
             if (!checkCollision(currentTetromino.shape, currentTetromino.x + dx, currentTetromino.y + dy)) {
-                currentTetromino.x += dx;
-                currentTetromino.y += dy;
-                return true;
-            }
-            return false;
+                currentTetromino.x += dx; currentTetromino.y += dy; return true;
+            } return false;
         }
         function rotateTetrominoLogic(clockwise = true) { /* ... (前回と同様) ... */
             if (!currentTetromino || gameOver) return;
-            const originalRotation = currentTetromino.rotation;
-            const originalX = currentTetromino.x;
+            const originalRotation = currentTetromino.rotation; const originalX = currentTetromino.x;
             const numRotations = currentTetromino.allShapes.length;
-
-            if (clockwise) {
-                currentTetromino.rotation = (currentTetromino.rotation + 1) % numRotations;
-            } else {
-                currentTetromino.rotation = (currentTetromino.rotation - 1 + numRotations) % numRotations;
-            }
+            if (clockwise) { currentTetromino.rotation = (currentTetromino.rotation + 1) % numRotations; }
+            else { currentTetromino.rotation = (currentTetromino.rotation - 1 + numRotations) % numRotations; }
             const nextShape = currentTetromino.allShapes[currentTetromino.rotation];
-
-            let kicks = [0, 1, -1, 2, -2];
-            if (currentTetromino.color === 'I') { kicks.push(3, -3); }
-
+            let kicks = [0, 1, -1, 2, -2]; if (currentTetromino.color === 'I') { kicks.push(3, -3); }
             let success = false;
             for (const kick of kicks) {
                 if (!checkCollision(nextShape, currentTetromino.x + kick, currentTetromino.y)) {
-                    currentTetromino.x += kick;
-                    currentTetromino.shape = nextShape;
-                    success = true;
-                    break;
+                    currentTetromino.x += kick; currentTetromino.shape = nextShape; success = true; break;
                 }
             }
-            if (!success) {
-                currentTetromino.rotation = originalRotation;
-                currentTetromino.x = originalX;
-                currentTetromino.shape = currentTetromino.allShapes[originalRotation];
-            }
+            if (!success) { currentTetromino.rotation = originalRotation; currentTetromino.x = originalX; currentTetromino.shape = currentTetromino.allShapes[originalRotation];}
         }
         function hardDropAction() { /* ... (前回と同様) ... */
-            if (!currentTetromino || gameOver) return;
-            let originalY = currentTetromino.y;
-            while (moveTetromino(0, 1)) { /* empty */ }
-            if (currentTetromino.y > originalY) {
-                 score += Math.max(1, (currentTetromino.y - originalY));
-                 updateScore();
-            }
+            if (!currentTetromino || gameOver) return; let originalY = currentTetromino.y;
+            while (moveTetromino(0, 1)) {}
+            if (currentTetromino.y > originalY) { score += Math.max(1, (currentTetromino.y - originalY)); updateScore(); }
             lockTetromino();
         }
         function checkCollision(shape, x, y) { /* ... (前回と同様) ... */
-            for (let r = 0; r < shape.length; r++) {
-                for (let c = 0; c < shape[r].length; c++) {
-                    if (shape[r][c]) {
-                        const newX = x + c;
-                        const newY = y + r;
-                        if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >=0 && board[newY][newX])) {
-                            return true;
-                        }
-                    }
+            for (let r = 0; r < shape.length; r++) { for (let c = 0; c < shape[r].length; c++) {
+                if (shape[r][c]) {
+                    const newX = x + c; const newY = y + r;
+                    if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >=0 && board[newY][newX])) { return true; }
                 }
-            }
-            return false;
+            }} return false;
         }
-
-        function lockTetromino() {
+        function lockTetromino() { /* ... (前回と同様) ... */
             if (!currentTetromino) return;
-            currentTetromino.shape.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value && currentTetromino.y + r >= 0) {
-                        if (currentTetromino.y + r < ROWS) {
-                           board[currentTetromino.y + r][currentTetromino.x + c] = currentTetromino.color;
-                        }
-                    }
-                });
-            });
-            clearLines();
-            canStockThisTurn = true; // ミノがロックされたので再度ストック可能に
-            btnStockElement.disabled = false; // ストックボタンを有効化
-            spawnNewTetromino();
-            if (gameOver) return;
-
-            if (!isSoftDropping) currentFallSpeed = fallSpeedNormal;
-            fallTime = 0;
+            currentTetromino.shape.forEach((row, r) => { row.forEach((value, c) => {
+                if (value && currentTetromino.y + r >= 0) { if (currentTetromino.y + r < ROWS) {
+                   board[currentTetromino.y + r][currentTetromino.x + c] = currentTetromino.color;
+                }}
+            });});
+            clearLines(); canStockThisTurn = true; btnStockElement.disabled = false;
+            spawnNewTetromino(); if (gameOver) return; // spawnNewTetromino内でgameOverになる可能性
+            if (!isSoftDropping) currentFallSpeed = fallSpeedNormal; fallTime = 0;
         }
         function clearLines() { /* ... (前回と同様) ... */
             let linesCleared = 0;
-            for (let r = ROWS - 1; r >= 0; r--) {
-                if (board[r].every(cell => cell !== 0)) {
-                    linesCleared++;
-                    board.splice(r, 1);
-                    board.unshift(Array(COLS).fill(0));
-                    r++;
-                }
-            }
+            for (let r = ROWS - 1; r >= 0; r--) { if (board[r].every(cell => cell !== 0)) {
+                linesCleared++; board.splice(r, 1); board.unshift(Array(COLS).fill(0)); r++;
+            }}
             if (linesCleared > 0) {
-                if (linesCleared === 1) score += 100;
-                else if (linesCleared === 2) score += 300;
-                else if (linesCleared === 3) score += 500;
-                else if (linesCleared >= 4) score += 800 * linesCleared;
+                if (linesCleared === 1) score += 100; else if (linesCleared === 2) score += 300;
+                else if (linesCleared === 3) score += 500; else if (linesCleared >= 4) score += 800 * linesCleared;
                 updateScore();
             }
         }
         function updateScore() { scoreElement.textContent = score; }
 
-        // --- 描画処理 ---
+
+        // --- 描画処理 (drawBlockのlineWidth調整以外は前回と同様) ---
         function draw() { /* ... (前回と同様) ... */
-            ctx.fillStyle = COLORS[0];
-            ctx.fillRect(0, 0, COLS, ROWS);
-            drawBoard();
-            if (currentTetromino && !gameOver) {
-                drawGhostTetromino();
-                drawTetrominoShape(currentTetromino, ctx, BLOCK_SIZE);
-            }
+            ctx.fillStyle = COLORS[0]; ctx.fillRect(0, 0, COLS, ROWS); drawBoard();
+            if (currentTetromino && !gameOver) { drawGhostTetromino(); drawTetrominoShape(currentTetromino, ctx, BLOCK_SIZE); }
         }
         function drawBoard() { /* ... (前回と同様) ... */
-            board.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value !== 0) {
-                        drawBlock(ctx, c, r, COLORS[value], BLOCK_SIZE);
-                    }
-                });
-            });
+            board.forEach((row, r) => { row.forEach((value, c) => {
+                if (value !== 0) { drawBlock(ctx, c, r, COLORS[value], BLOCK_SIZE); }
+            });});
         }
-
-        function drawTetrominoShape(tetromino, targetCtx, blockSizeToUse) {
-            if (!tetromino || !tetromino.shape) return; // 安全チェック
-            const colorKey = tetromino.color;
-            const colorValue = COLORS[colorKey] || COLORS['I']; // 不明な色ならIミノの色
-
-            tetromino.shape.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value) {
-                        if (tetromino.y + r >= 0 || targetCtx === nextCtx || targetCtx === stockCtx) { // メイン盤面以外はy座標チェック不要
-                            drawBlock(targetCtx, tetromino.x + c, tetromino.y + r, colorValue, blockSizeToUse);
-                        }
-                    }
-                });
-            });
+        function drawTetrominoShape(tetromino, targetCtx, blockSizeToUse) { /* ... (前回と同様) ... */
+            if (!tetromino || !tetromino.shape) return; const colorKey = tetromino.color;
+            const colorValue = COLORS[colorKey] || COLORS['I'];
+            tetromino.shape.forEach((row, r) => { row.forEach((value, c) => {
+                if (value) { if (tetromino.y + r >= 0 || targetCtx === nextCtx || targetCtx === stockCtx) {
+                    drawBlock(targetCtx, tetromino.x + c, tetromino.y + r, colorValue, blockSizeToUse);
+                }}
+            });});
         }
-
         function drawGhostTetromino() { /* ... (前回と同様) ... */
-            if (!currentTetromino || gameOver) return;
-            let ghostY = currentTetromino.y;
-            while (!checkCollision(currentTetromino.shape, currentTetromino.x, ghostY + 1)) {
-                ghostY++;
-            }
-            currentTetromino.shape.forEach((row, r) => {
-                row.forEach((value, c) => {
-                    if (value) {
-                        if (ghostY + r >= 0) {
-                           drawBlock(ctx, currentTetromino.x + c, ghostY + r, COLORS.GHOST, BLOCK_SIZE);
-                        }
-                    }
-                });
-            });
+            if (!currentTetromino || gameOver) return; let ghostY = currentTetromino.y;
+            while (!checkCollision(currentTetromino.shape, currentTetromino.x, ghostY + 1)) { ghostY++; }
+            currentTetromino.shape.forEach((row, r) => { row.forEach((value, c) => {
+                if (value) { if (ghostY + r >= 0) {
+                   drawBlock(ctx, currentTetromino.x + c, ghostY + r, COLORS.GHOST, BLOCK_SIZE);
+                }}
+            });});
         }
-
         function drawBlock(targetCtx, x, y, color, blockSizeToUse) {
             targetCtx.fillStyle = color;
-            // targetCtxのスケールは既に設定されているので、座標はそのまま、サイズは1x1
             targetCtx.fillRect(x, y, 1, 1);
             targetCtx.strokeStyle = BORDER_COLOR;
-            // 線の太さは、基準となるブロックサイズ(e.g., 20px)に対する相対値で設定すると見栄えが良い
-            targetCtx.lineWidth = 0.05 * (20 / blockSizeToUse); // 基準20pxで0.05なら、サイズに応じて調整
+            // 線の太さを、基準となるブロックサイズ(e.g., 20px)に対する相対値で設定
+            // blockSizeToUse が0やマイナスにならないようにMath.maxで保護
+            targetCtx.lineWidth = Math.max(0.01, 0.05 * (20 / Math.max(1, blockSizeToUse)));
             targetCtx.strokeRect(x, y, 1, 1);
         }
-
-        function drawPreviewTetromino(tetromino, targetCtx, previewCols, previewRows, blockSizeToUse) {
+        function drawPreviewTetromino(tetromino, targetCtx, previewCols, previewRows, blockSizeToUse) { /* ... (前回と同様) ... */
             if (targetCtx.canvas.width <= 0 || targetCtx.canvas.height <= 0 || blockSizeToUse <= 0) return;
-
-            // スケール再設定
-            targetCtx.setTransform(1,0,0,1,0,0);
-            targetCtx.scale(blockSizeToUse, blockSizeToUse);
-
             targetCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
             targetCtx.fillRect(0, 0, previewCols, previewRows);
-
             if (tetromino) {
-                const shape = TETROMINOES[tetromino.color].shape[0]; // 必ず初期形状で表示
-                const color = COLORS[tetromino.color];
-                const shapeHeight = shape.length;
-                const shapeWidth = shape[0].length;
-                const offsetX = (previewCols - shapeWidth) / 2;
-                const offsetY = (previewRows - shapeHeight) / 2;
-
-                shape.forEach((row, r) => {
-                    row.forEach((value, c) => {
-                        if (value) {
-                            // プレビュー用の描画（x,yはオフセットからの相対位置）
-                            drawBlock(targetCtx, offsetX + c, offsetY + r, color, blockSizeToUse);
-                        }
-                    });
-                });
+                const shape = TETROMINOES[tetromino.color].shape[0]; const color = COLORS[tetromino.color];
+                const shapeHeight = shape.length; const shapeWidth = shape[0].length;
+                const offsetX = (previewCols - shapeWidth) / 2; const offsetY = (previewRows - shapeHeight) / 2;
+                shape.forEach((row, r) => { row.forEach((value, c) => {
+                    if (value) { drawBlock(targetCtx, offsetX + c, offsetY + r, color, blockSizeToUse); }
+                });});
             }
         }
-
-        function drawNextTetromino() {
-            drawPreviewTetromino(nextTetromino, nextCtx, NEXT_COLS, NEXT_ROWS, NEXT_BLOCK_SIZE);
-        }
-
-        function drawStockTetromino() {
-            drawPreviewTetromino(stockTetromino, stockCtx, STOCK_COLS, STOCK_ROWS, STOCK_BLOCK_SIZE);
-        }
+        function drawNextTetromino() { drawPreviewTetromino(nextTetromino, nextCtx, NEXT_COLS, NEXT_ROWS, NEXT_BLOCK_SIZE); }
+        function drawStockTetromino() { drawPreviewTetromino(stockTetromino, stockCtx, STOCK_COLS, STOCK_ROWS, STOCK_BLOCK_SIZE); }
 
 
-        function showGameOverScreen() { /* ... (前回と同様) ... */
+        function showGameOverScreen() {
             finalScoreElement.textContent = `最終スコア: ${score}`;
             gameOverScreen.classList.remove('hidden');
-            btnStockElement.disabled = true; // ゲームオーバー時もストックボタン無効
+            btnStockElement.disabled = true;
+            controlsContainerElement.classList.add('controls-hidden'); // 操作ボタンを非表示
         }
 
         // --- ゲームループ ---
         let lastTime = 0;
-        function gameLoop(timestamp = 0) { /* ... (前回と同様) ... */
-            if (gameOver) {
-                draw();
+        function gameLoop(timestamp = 0) {
+            if (gameOver) { // ゲームオーバーならループを停止し、最終描画
+                draw(); // 最後の盤面を描画
                 showGameOverScreen();
                 return;
             }
@@ -671,107 +554,63 @@
 
             if (fallTime >= currentFallSpeed) {
                 fallTime = 0;
-                if (!moveTetromino(0, 1)) {
+                if (!moveTetromino(0, 1)) { // 下に移動できなかったら
                     lockTetromino();
-                    if (gameOver) {
-                        draw();
+                    if (gameOver) { // lockTetromino内でゲームオーバーになることがある
+                        draw(); // 最後の盤面を描画
                         showGameOverScreen();
-                        return;
+                        return; // ゲームオーバーループを抜ける
                     }
                 }
             }
-            draw();
+            draw(); // 通常の描画
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        // --- イベントリスナー ---
-        // Keyboard controls
-        document.addEventListener('keydown', (event) => {
-            if (gameOver) {
-                if (event.key.toUpperCase() === 'R') resetGame();
-                return;
-            }
+        // --- イベントリスナー (前回と同様) ---
+        document.addEventListener('keydown', (event) => { /* ... (前回と同様) ... */
+            if (gameOver) { if (event.key.toUpperCase() === 'R') resetGame(); return; }
             if (!currentTetromino) return;
-
-            // キーボード操作にストック追加 (例: Sキー or Spaceキー)
-            if (event.key.toUpperCase() === 'S' || event.code === 'Space') {
-                event.preventDefault(); // Spaceでの画面スクロールを防ぐ
-                handleStock();
-                return; // ストック操作後は他の操作を無視
-            }
-            // キーボード操作に回転キー追加 (例: Z, C, X)
-            // Xキーでハードドロップも良いかも
-            if (event.key.toUpperCase() === 'X' || event.key.toUpperCase() === 'ARROWUP') {
-                 hardDropAction(); return;
-            }
-            if (event.key.toUpperCase() === 'Z') {
-                 rotateTetrominoLogic(false); return; // 反時計回り
-            }
-             if (event.key.toUpperCase() === 'C') {
-                 rotateTetrominoLogic(true); return; // 時計回り
-            }
-
-
+            if (event.key.toUpperCase() === 'S' || event.code === 'Space') { event.preventDefault(); handleStock(); return; }
+            if (event.key.toUpperCase() === 'X' || event.key.toUpperCase() === 'ARROWUP') { hardDropAction(); return; }
+            if (event.key.toUpperCase() === 'Z') { rotateTetrominoLogic(false); return; }
+            if (event.key.toUpperCase() === 'C') { rotateTetrominoLogic(true); return; }
             switch (event.key.toUpperCase()) {
-                // case 'ARROWLEFT': rotateTetrominoLogic(false); break; // Zに割り当てたのでコメントアウト
-                // case 'ARROWRIGHT': rotateTetrominoLogic(true); break; // Cに割り当てたのでコメントアウト
-                case 'ARROWLEFT': // Aキーも左移動
-                case 'A':
-                    moveTetromino(-1, 0); break;
-                case 'ARROWRIGHT': // Dキーも右移動
-                case 'D':
-                    moveTetromino(1, 0); break;
+                case 'ARROWLEFT': case 'A': moveTetromino(-1, 0); break;
+                case 'ARROWRIGHT': case 'D': moveTetromino(1, 0); break;
                 case 'ARROWDOWN':
-                    if (!isSoftDropping) {
-                        isSoftDropping = true;
-                        currentFallSpeed = fallSpeedSoftDrop;
-                        score += 1; updateScore();
-                        if (moveTetromino(0, 1)) fallTime = 0;
-                    }
-                    break;
-                // case 'ARROWUP': hardDropAction(); break; // Xに割り当てたのでコメントアウト
+                    if (!isSoftDropping) { isSoftDropping = true; currentFallSpeed = fallSpeedSoftDrop;
+                        score += 1; updateScore(); if (moveTetromino(0, 1)) fallTime = 0;
+                    } break;
             }
         });
-
         document.addEventListener('keyup', (event) => { /* ... (前回と同様) ... */
-            if (event.key.toUpperCase() === 'ARROWDOWN') {
-                isSoftDropping = false;
-                currentFallSpeed = fallSpeedNormal;
-            }
+            if (event.key.toUpperCase() === 'ARROWDOWN') { isSoftDropping = false; currentFallSpeed = fallSpeedNormal; }
         });
-
-        // Touch controls
         btnMoveLeftPad.addEventListener('click', () => moveTetromino(-1, 0));
         btnMoveRightPad.addEventListener('click', () => moveTetromino(1, 0));
         btnRotateCW.addEventListener('click', () => rotateTetrominoLogic(true));
         btnRotateCCW.addEventListener('click', () => rotateTetrominoLogic(false));
         btnHardDropAction.addEventListener('click', hardDropAction);
-        btnStockElement.addEventListener('click', handleStock); // ストックボタン
-
+        btnStockElement.addEventListener('click', handleStock);
         btnSoftDrop.addEventListener('touchstart', (e) => { /* ... (前回と同様) ... */
-            e.preventDefault(); if (gameOver || !currentTetromino) return;
-            isSoftDropping = true; currentFallSpeed = fallSpeedSoftDrop;
+            e.preventDefault(); if (gameOver || !currentTetromino) return; isSoftDropping = true; currentFallSpeed = fallSpeedSoftDrop;
             score += 1; updateScore(); if (moveTetromino(0, 1)) fallTime = 0;
         });
         btnSoftDrop.addEventListener('touchend', (e) => { /* ... (前回と同様) ... */
-            e.preventDefault(); if (gameOver || !currentTetromino) return;
-            isSoftDropping = false; currentFallSpeed = fallSpeedNormal;
+            e.preventDefault(); if (gameOver || !currentTetromino) return; isSoftDropping = false; currentFallSpeed = fallSpeedNormal;
         });
         btnSoftDrop.addEventListener('mousedown', (e) => { /* ... (前回と同様) ... */
             if (e.button !== 0) return; e.preventDefault(); if (gameOver || !currentTetromino) return;
-            isSoftDropping = true; currentFallSpeed = fallSpeedSoftDrop;
-            score += 1; updateScore(); if (moveTetromino(0, 1)) fallTime = 0;
+            isSoftDropping = true; currentFallSpeed = fallSpeedSoftDrop; score += 1; updateScore(); if (moveTetromino(0, 1)) fallTime = 0;
         });
         btnSoftDrop.addEventListener('mouseup', (e) => { /* ... (前回と同様) ... */
             if (e.button !== 0) return; e.preventDefault(); if (gameOver || !currentTetromino) return;
             isSoftDropping = false; currentFallSpeed = fallSpeedNormal;
         });
         btnSoftDrop.addEventListener('mouseleave', (e) => { /* ... (前回と同様) ... */
-            if (isSoftDropping && (e.buttons === 1 || e.type === 'touchcancel')) {
-                isSoftDropping = false; currentFallSpeed = fallSpeedNormal;
-            }
+            if (isSoftDropping && (e.buttons === 1 || e.type === 'touchcancel')) { isSoftDropping = false; currentFallSpeed = fallSpeedNormal; }
         });
-
         restartButton.addEventListener('click', resetGame);
 
         // --- ゲーム開始 ---
@@ -779,3 +618,5 @@
     </script>
 </body>
 </html>
+
+
